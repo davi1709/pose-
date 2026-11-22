@@ -18,6 +18,7 @@ const VIEWS = [
   { id: 'three', label: '¾', azimuth: 40 },
   { id: 'side', label: 'Side', azimuth: 90 },
   { id: 'back', label: 'Back', azimuth: 180 },
+  { id: 'above', label: 'Above', azimuth: 20, elevation: 38 },
 ];
 
 export default function PoseDetail({ pose, fav, onFav, onBack, onShoot, onEdit, onDelete }) {
@@ -37,7 +38,7 @@ export default function PoseDetail({ pose, fav, onFav, onBack, onShoot, onEdit, 
     haptic(6);
     setView(v.id);
     setSpin(false);
-    rendererRef.current?.reframe({ azimuth: (pose.view?.azimuth || 0) + v.azimuth, elevation: 4 });
+    rendererRef.current?.reframe({ azimuth: (pose.view?.azimuth || 0) + v.azimuth, elevation: v.elevation ?? 4 });
   };
 
   return (

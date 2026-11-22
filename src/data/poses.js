@@ -16,6 +16,9 @@ export const CATEGORIES = [
   { id: 'sitting', label: 'Sitting' },
   { id: 'family', label: 'Family' },
   { id: 'fitness', label: 'Fitness' },
+  { id: 'cute', label: 'Cute' },
+  { id: 'candid', label: 'Candid' },
+  { id: 'places', label: 'Walls · Trees · Mirrors' },
 ];
 
 /**
@@ -757,8 +760,317 @@ POSES.push(
 
 for (const p of POSES) if (['stool-perch', 'bench-lean', 'knees-up'].includes(p.id)) p.category = 'sitting';
 
+/* ============================ CUTE · CANDID · PLACES ============================ */
+const swapSide = (n) => (n.endsWith('L') ? n.slice(0, -1) + 'R' : n.endsWith('R') ? n.slice(0, -1) + 'L' : n);
+/** Mirror reflection of a figure across a mirror standing at z = zm (drawn translucent). */
+const reflect = (f, zm) => ({
+  ...f,
+  joints: mirrorJoints(f.joints),
+  pos: [f.pos?.[0] || 0, 2 * zm - (f.pos?.[1] || 0)],
+  rotY: 180 - (f.rotY || 0),
+  ghostly: true,
+  props: f.props?.map((p) => ({ ...p, at: swapSide(p.at) })),
+});
+const WALL_BEHIND = [{ type: 'wall', pos: [0, -0.24] }];
+const footOnWallR = { hipR: [-34, 0, -4], kneeR: [104, 0, 0], ankleR: [-12, 0, 0] };
+const handsBehind = { shoulderL: [22, 0, 4], elbowL: [0, 0, -78], shoulderR: [22, 0, -4], elbowR: [0, 0, 78] };
+const hairTuckR = { shoulderR: [-26, 30, -2], elbowR: [-150, 0, 0], wristR: [0, 0, -10] };
+const peaceFace = (side) => (side === 'R' ? { shoulderR: [-16, 0, -38], elbowR: [0, 0, -128] } : { shoulderL: [-16, 0, 38], elbowL: [0, 0, 128] });
+const heelPopL = { hipL: [8, 0, -2], kneeL: [62, 0, 0], ankleL: [30, 0, 0] };
+const sitSide = { hipL: [-86, 0, -14], kneeL: [92, 0, 0], hipR: [-86, 0, -24], kneeR: [92, 0, 0], ankleL: [10, 0, 0], ankleR: [10, 0, 0] };
+
+const mirrorMe = fig('b', { shoulderR: [-62, 0, -4], elbowR: [-100, 0, 0], ...handOnHipL, head: [6, 10, 0], pelvis: [0, -8, -5], hipL: [-8, 0, -7], kneeL: [26, 0, 0], ankleL: [16, 0, 0], hipR: [0, 0, 5] }, { pos: [0, 0.25], rotY: 168, props: [{ type: 'phone', at: 'wristR' }] });
+const readyMe = fig('b', { shoulderL: [-14, 0, 140], elbowL: [0, 0, 128], shoulderR: [-14, 0, -140], elbowR: [0, 0, -128], head: [-6, 0, 8], ...kneePopL }, { pos: [0, 0.3], rotY: 172 });
+
+POSES.push(
+  /* ------------------------------ PLACES ------------------------------ */
+  {
+    id: 'wall-foot-up', name: 'Wall Lean, Foot Up', category: 'places', level: 'Easy',
+    blurb: 'Back against the wall with one foot flat behind you. Effortless street style.',
+    cues: ['Lean your back on the wall', 'Bend your right knee and put that foot on the wall', 'One hand in your hair, gaze off to the side'],
+    props: WALL_BEHIND,
+    figures: [fig('b', { pelvis: [-5, 0, 0], ...footOnWallR, ...hairTuckR, shoulderL: [8, 0, 10], elbowL: [-14, 0, 0], head: [2, 26, 6] })],
+  },
+  {
+    id: 'wall-shoulder', name: 'Shoulder to the Wall', category: 'places', level: 'Easy',
+    blurb: 'Side-on, shoulder against the wall, ankles crossed, face toward the lens.',
+    cues: ['Stand side-on and lean a shoulder on the wall', 'Cross your ankles', 'Turn only your face to the camera'],
+    props: WALL_BEHIND,
+    view: { azimuth: 10 },
+    figures: [fig('b', { pelvis: [0, 0, -7], hipR: [0, 0, 13], kneeR: [4, 0, 0], ankleR: [0, 0, -10], ...crossArms, chest: [0, -22, 0], neck: [0, -18, 0], head: [0, -28, 0] }, { pos: [0, -0.02], rotY: 90 })],
+  },
+  {
+    id: 'wall-hands-behind', name: 'Hands Behind', category: 'places', level: 'Easy',
+    blurb: 'Back to the wall with hands tucked behind you, chin down and eyes up. Sweet and shy.',
+    cues: ['Back against the wall, hands tucked behind', 'Bend one knee in', 'Chin down, eyes up to the lens'],
+    props: WALL_BEHIND,
+    figures: [fig('b', { pelvis: [-4, 0, 0], ...handsBehind, hipL: [-10, 0, -8], kneeL: [26, 0, 0], ankleL: [20, 0, 0], head: [12, 0, -10] })],
+  },
+  {
+    id: 'wall-arm-up', name: 'Hand on the Wall', category: 'places', level: 'Medium',
+    blurb: 'One hand pressed high on the wall, body angled away. Long lines and attitude.',
+    cues: ['Stand side-on near the wall', 'Press your hand on the wall above your head', 'Pop the hip away and look at the lens'],
+    props: [{ type: 'wall', pos: [0, -0.34] }],
+    view: { azimuth: 10 },
+    figures: [fig('b', { shoulderL: [-4, 0, 128], elbowL: [0, 0, 28], pelvis: [0, 0, 6], chest: [0, -18, -6], head: [0, -34, -4], ...handOnHipR2, hipR: [-8, 0, 6], kneeR: [20, 0, 0] }, { rotY: 90 })],
+  },
+  {
+    id: 'tree-lean', name: 'Tree Lean', category: 'places', level: 'Easy',
+    blurb: 'Leaning back on a tree trunk, lost in thought. Dreamy in parks and forests.',
+    cues: ['Lean your back against the trunk', 'Bring one foot up against the tree', 'Look away into the distance'],
+    props: [{ type: 'tree', pos: [0, -0.3] }],
+    figures: [fig('b', { pelvis: [-6, 0, 0], ...footOnWallR, ...handsBehind, head: [-4, 36, 0], neck: [0, 10, 0] })],
+  },
+  {
+    id: 'tree-peek', name: 'Peek-a-Tree', category: 'places', level: 'Easy',
+    blurb: 'Peeking out from behind a tree with both hands on the trunk. Playful and cute.',
+    cues: ['Stand just behind the trunk', 'Rest both hands on the bark', 'Lean out and peek at the camera'],
+    props: [{ type: 'tree', pos: [0.06, 0.02] }],
+    view: { azimuth: 0 },
+    figures: [fig('b', { shoulderL: [-70, -20, -4], elbowL: [-40, 0, 0], shoulderR: [-70, 20, 4], elbowR: [-40, 0, 0], chest: [6, -8, -12], neck: [0, -10, -6], head: [0, -14, -10], hipL: [-6, 0, 0], kneeL: [16, 0, 0], ankleL: [12, 0, 0] }, { pos: [-0.2, -0.22], rotY: 40 })],
+  },
+  {
+    id: 'tree-sit', name: 'Under the Tree', category: 'places', level: 'Easy',
+    blurb: 'Sitting against a tree with your knees up, reading. A cosy park day.',
+    cues: ['Sit with your back against the trunk', 'Knees up, book resting on them', 'Look down at the page and smile'],
+    props: [{ type: 'tree', pos: [0, -0.34] }],
+    figures: [fig('b', { hipL: [-96, 0, 6], kneeL: [110, 0, 0], hipR: [-90, 0, -8], kneeR: [70, 0, 0], ankleR: [16, 0, 0], shoulderL: [-50, -30, 0], elbowL: [-70, 0, 0], shoulderR: [-50, 30, 0], elbowR: [-70, 0, 0], head: [24, 0, 4], spine: [4, 0, 0] }, { props: [{ type: 'book', at: 'wristR' }] })],
+  },
+  {
+    id: 'mirror-check', name: 'Mirror Check', category: 'places', level: 'Easy',
+    blurb: 'Full-length mirror selfie from behind: your reflection is the photo. The ghost shows where it will appear.',
+    cues: ['Stand a step in front of a full-length mirror', 'Phone at chest height, pop a knee', 'Have a friend shoot over your shoulder'],
+    props: [{ type: 'mirror', pos: [0, -0.35] }],
+    view: { azimuth: 28 },
+    figures: [mirrorMe, reflect(mirrorMe, -0.35)],
+  },
+  {
+    id: 'mirror-ready', name: 'Getting Ready', category: 'places', level: 'Easy',
+    blurb: 'Fixing your hair in the mirror. A candid “getting ready” moment, with your face in the reflection.',
+    cues: ['Face the mirror, a little to the side', 'Lift both hands into your hair', 'Look at yourself in the mirror, not the camera'],
+    props: [{ type: 'mirror', pos: [0, -0.3] }],
+    view: { azimuth: 30 },
+    figures: [readyMe, reflect(readyMe, -0.3)],
+  },
+
+  /* ------------------------------ CANDID ------------------------------ */
+  {
+    id: 'horizon', name: 'Horizon Gaze', category: 'candid', level: 'Easy',
+    blurb: 'Turned away, looking out at the horizon. Perfect for beaches, cliffs and city views.',
+    cues: ['Turn three-quarters away from the camera', 'Look far into the distance', 'Let your arms hang loose, breathe'],
+    figures: [fig('b', { head: [-6, -24, 0], neck: [0, -10, 0], chest: [0, -6, 0], shoulderL: [6, 0, 10], shoulderR: [4, 0, -12], elbowR: [-16, 0, 0], ...kneePopL }, { rotY: 132 })],
+  },
+  {
+    id: 'sun-shield', name: 'Shading the Sun', category: 'candid', level: 'Easy',
+    blurb: 'A hand above your eyes, searching the distance. Travel-diary perfect.',
+    cues: ['Raise a hand to shade your eyes', 'Look toward the horizon', 'Weight on one leg, relaxed'],
+    figures: [fig('b', { shoulderR: [-50, 40, -8], elbowR: [-128, 0, 0], wristR: [-20, 0, 0], head: [-10, -30, 0], chest: [0, -8, 0], ...kneePopL }, { rotY: 30 })],
+  },
+  {
+    id: 'hair-tuck', name: 'Hair Tuck', category: 'candid', level: 'Easy',
+    blurb: 'Tucking your hair behind your ear while looking down. Soft, natural and very flattering.',
+    cues: ['Tuck your hair behind your ear', 'Look down and to the side', 'Let a tiny smile happen'],
+    figures: [fig('b', { ...hairTuckR, head: [18, -12, 10], shoulderL: [6, 0, 10], elbowL: [-12, 0, 0], ...kneePopL }, { rotY: 16 })],
+  },
+  {
+    id: 'laugh-away', name: 'Laugh Away', category: 'candid', level: 'Easy',
+    blurb: 'Caught mid-laugh, looking away with a hand near your mouth.',
+    cues: ['Look to the side as if someone made a joke', 'Bring a hand near your mouth', 'Really laugh, shoulders loose'],
+    figures: [fig('b', { shoulderR: [-30, 34, 4], elbowR: [-136, 0, 0], head: [6, 34, 8], chest: [4, 10, 0], ...kneePopL, shoulderL: [10, 0, 12], elbowL: [-16, 0, 0] }, { rotY: -14 })],
+  },
+  {
+    id: 'cross-street', name: 'Crossing the Street', category: 'candid', level: 'Easy',
+    blurb: 'Walking side-on through the frame and glancing at the camera. Fashion-week energy.',
+    cues: ['Walk across the frame, side-on', 'Mid-stride, swing your arms', 'Glance at the camera as you pass'],
+    figures: [fig('b', { ...walkLegs, shoulderL: [20, 0, 6], shoulderR: [-22, 0, -6], elbowR: [-24, 0, 0], chest: [0, -16, 0], head: [0, -40, 0] }, { rotY: 90, props: [{ type: 'bag', at: 'wristL' }] })],
+  },
+  {
+    id: 'text-walk', name: 'Text & Walk', category: 'candid', level: 'Easy',
+    blurb: 'Strolling while looking at your phone. Natural, unposed, city-life.',
+    cues: ['Walk slowly toward the camera', 'Look down at your phone', 'Other arm swinging naturally'],
+    figures: [fig('b', { ...walkLegs, shoulderR: [-30, 0, 8], elbowR: [-82, 0, 0], shoulderL: [16, 0, 8], head: [26, 0, 0] }, { rotY: 16, props: [{ type: 'phone', at: 'wristR' }] })],
+  },
+  {
+    id: 'shoe-check', name: 'Shoe Check', category: 'candid', level: 'Easy',
+    blurb: 'Lifting a heel to look at your shoe. Adorable, and it shows off the outfit.',
+    cues: ['Lift your left heel up behind you', 'Look back down at your shoe', 'Hold your bag or skirt to the side'],
+    figures: [fig('b', { hipL: [14, 0, 4], kneeL: [86, 0, 0], ankleL: [30, 0, 0], chest: [6, 18, 0], head: [30, 34, 0], shoulderL: [16, 0, 26], elbowL: [-10, 0, 0], shoulderR: [6, 0, -16] }, { rotY: 28 })],
+  },
+  {
+    id: 'window-daydream', name: 'Window Daydream', category: 'candid', level: 'Easy',
+    blurb: 'Seated, cheek on your hand, gazing out a window. Café-film mood.',
+    cues: ['Sit sideways near a window', 'Rest your cheek on your hand', 'Look out the window, not at the lens'],
+    props: STOOL,
+    figures: [fig('b', { ...SIT_CROSS_R, shoulderR: [-56, 26, 4], elbowR: [-138, 0, 0], shoulderL: [-36, 0, -8], elbowL: [-40, 0, 0], head: [6, -36, 12], chest: [6, -8, 0] }, { rotY: 30 })],
+  },
+  {
+    id: 'lazy-stretch', name: 'Lazy Stretch', category: 'candid', level: 'Easy',
+    blurb: 'A sleepy morning stretch with your head tilted. Cosy and real.',
+    cues: ['Interlace your fingers above your head', 'Lean gently to one side', 'Close your eyes like you just woke up'],
+    figures: [fig('b', { shoulderL: [-8, 0, 156], elbowL: [0, 0, 26], shoulderR: [-8, 0, -156], elbowR: [0, 0, -26], chest: [0, 0, 8], head: [0, 0, 14], ...kneePopL })],
+  },
+
+  /* ------------------------------ CUTE ------------------------------ */
+  {
+    id: 'blow-kiss', name: 'Blow a Kiss', category: 'cute', level: 'Easy',
+    blurb: 'A kiss off your fingertips with a little heel pop. Irresistible.',
+    cues: ['Kiss your fingertips', 'Send the kiss toward the camera', 'Pop your heel up behind you'],
+    figures: [fig('b', { shoulderR: [-70, 26, -10], elbowR: [-56, 0, 0], head: [2, 0, 10], ...heelPopL, shoulderL: [6, 0, 14] })],
+  },
+  {
+    id: 'cheek-squish', name: 'Cheek Squish', category: 'cute', level: 'Easy',
+    blurb: 'Hands pressed to your cheeks with a big smile. Pure sweetness.',
+    cues: ['Press both palms gently to your cheeks', 'Scrunch your shoulders up a little', 'Tilt your head and grin'],
+    figures: [fig('b', { shoulderL: [-26, -40, 0], elbowL: [-148, 0, 0], shoulderR: [-26, 40, 0], elbowR: [-148, 0, 0], head: [0, 0, 12], ...kneePopL })],
+  },
+  {
+    id: 'peekaboo', name: 'Peekaboo', category: 'cute', level: 'Easy',
+    blurb: 'Hands over your face, peeking through your fingers. Playful and fun.',
+    cues: ['Cover your face with both hands', 'Peek through your fingers', 'Toes in, knees soft'],
+    figures: [fig('b', { shoulderL: [-50, -40, 0], elbowL: [-142, 0, 0], shoulderR: [-50, 40, 0], elbowR: [-142, 0, 0], head: [8, 0, 0], hipL: [0, -16, -2], kneeL: [16, 0, 0], hipR: [0, 16, 2], kneeR: [10, 0, 0] })],
+  },
+  {
+    id: 'self-hug', name: 'Hug Yourself', category: 'cute', level: 'Easy',
+    blurb: 'Wrapped in your own arms, shoulders up, head tilted. Cosy sweater weather.',
+    cues: ['Wrap your arms around yourself', 'Lift your shoulders a little', 'Tilt your head and smile softly'],
+    figures: [fig('b', { shoulderL: [-38, -70, -6], elbowL: [-96, 0, 0], shoulderR: [-28, 70, 6], elbowR: [-104, 0, 0], head: [6, 8, 14], ...kneePopL })],
+  },
+  {
+    id: 'double-peace', name: 'Double Peace', category: 'cute', level: 'Easy',
+    blurb: 'Peace signs on both sides of your face. Peak playful.',
+    cues: ['Peace signs up beside your face', 'Lean forward slightly', 'Big smile or a wink'],
+    figures: [fig('b', { ...peaceFace('L'), ...peaceFace('R'), spine: [6, 0, 0], head: [0, 0, 8], ...kneePopL })],
+  },
+  {
+    id: 'flower-chin', name: 'Flower Face', category: 'cute', level: 'Easy',
+    blurb: 'Both hands cupped under your chin like a flower. Adorable for close-ups.',
+    cues: ['Cup both hands under your chin', 'Spread your fingers like petals', 'Head tilted, sweet smile'],
+    figures: [fig('b', { shoulderL: [-40, -46, 0], elbowL: [-136, 0, 0], shoulderR: [-40, 46, 0], elbowR: [-136, 0, 0], head: [0, 0, 12], spine: [4, 0, 0], ...kneePopL })],
+  },
+  {
+    id: 'curtsy', name: 'Little Curtsy', category: 'cute', level: 'Easy',
+    blurb: 'Holding your skirt out with one foot behind. Fairytale cute.',
+    cues: ['Hold the sides of your skirt out', 'Cross one foot behind the other and dip', 'Tilt your head and smile'],
+    figures: [fig('b', { shoulderL: [-6, 0, 30], elbowL: [-14, 0, 0], shoulderR: [-6, 0, -30], elbowR: [-14, 0, 0], hipR: [14, 0, 12], kneeR: [42, 0, 0], ankleR: [24, 0, 0], kneeL: [14, 0, 0], hipL: [-6, 0, 0], head: [8, 0, 12], spine: [8, 0, 0] })],
+  },
+  {
+    id: 'happy-hop', name: 'Happy Hop', category: 'cute', level: 'Easy',
+    blurb: 'A little jump with a knee up and arms out. Joy in one frame.',
+    cues: ['Hop up off one foot', 'Lift the other knee', 'Arms out and up, big smile'],
+    figures: [fig('b', { hipR: [-60, 0, -4], kneeR: [90, 0, 0], ankleR: [26, 0, 0], ankleL: [30, 0, 0], shoulderL: [-10, 0, 120], elbowL: [0, 0, 14], shoulderR: [-10, 0, -120], elbowR: [0, 0, -14], head: [-10, 0, 0] }, { lift: 0.12 })],
+  },
+  {
+    id: 'belly-kick', name: 'Feet Up, Chin in Hands', category: 'cute', level: 'Medium',
+    blurb: 'Lying on your tummy, chin in your hands, feet kicked up. Shoot it from above!',
+    cues: ['Lie on your tummy, elbows on the floor', 'Rest your chin in your hands', 'Kick your feet up and cross your ankles'],
+    view: { azimuth: 35, elevation: 30 },
+    figures: [fig('b', { pelvis: [88, 0, 0], spine: [-30, 0, 0], chest: [-32, 0, 0], head: [-14, 0, 8], shoulderL: [-150, -30, 0], elbowL: [-110, 0, 0], shoulderR: [-150, 30, 0], elbowR: [-110, 0, 0], kneeL: [116, 0, 0], kneeR: [80, 0, 0], ankleL: [30, 0, 0], ankleR: [30, 0, 0] }, { rotY: 70 })],
+  },
+  {
+    id: 'sit-heels', name: 'Sit on Heels', category: 'cute', level: 'Easy',
+    blurb: 'Kneeling and sitting back on your heels, hands in your lap. Calm and sweet.',
+    cues: ['Kneel and sit back on your heels', 'Rest your hands in your lap', 'Head tilt, soft smile'],
+    figures: [fig('b', { hipL: [-78, 0, 6], kneeL: [164, 0, 0], ankleL: [50, 0, 0], hipR: [-78, 0, -6], kneeR: [164, 0, 0], ankleR: [50, 0, 0], shoulderL: [-30, 0, -6], elbowL: [-40, 0, 0], shoulderR: [-30, 0, 6], elbowR: [-40, 0, 0], head: [2, 0, 12] }, { rotY: 14 })],
+  },
+  {
+    id: 'smell-flowers', name: 'Smell the Flowers', category: 'cute', level: 'Easy',
+    blurb: 'Eyes closed, flowers held up to your nose. Spring in a single frame.',
+    cues: ['Hold the bouquet up to your face', 'Close your eyes', 'Breathe in and smile'],
+    figures: [fig('b', { shoulderR: [-44, 32, 0], elbowR: [-136, 0, 0], shoulderL: [-30, -40, 0], elbowL: [-110, 0, 0], head: [16, 0, 6], ...kneePopL }, { rotY: 18, props: [{ type: 'flowers', at: 'wristR' }] })],
+  },
+
+  /* ------------------------------ SULTRY SITS ------------------------------ */
+  {
+    id: 'sultry-stool', name: 'Sultry Stool', category: 'sitting', level: 'Medium',
+    blurb: 'Legs crossed high, leaning back on one hand, chin down, eyes up. Confident and magnetic.',
+    cues: ['Cross your legs high at the thigh', 'Lean back on one hand on the seat', 'Chin down, eyes up into the lens'],
+    props: STOOL,
+    figures: [fig('b', { hipL: [-84, 0, 6], kneeL: [84, 0, 0], hipR: [-112, 0, 20], kneeR: [74, 0, 0], ankleR: [30, 0, 0], spine: [-8, 0, 0], shoulderL: [34, 0, 24], elbowL: [0, 0, 0], shoulderR: [-46, 0, 14], elbowR: [-24, 0, 0], head: [10, 14, 8] }, { rotY: -22 })],
+  },
+  {
+    id: 'edge-of-seat', name: 'Knees to the Side', category: 'sitting', level: 'Easy',
+    blurb: 'Perched on the edge with knees together and angled to the side. Elegant and very flattering.',
+    cues: ['Sit on the edge, knees together', 'Angle both knees to one side', 'Hands on your knees, back long, look over your shoulder'],
+    props: STOOL,
+    figures: [fig('b', { ...sitSide, shoulderL: [-40, 0, -14], elbowL: [-30, 0, 0], shoulderR: [-38, 0, 4], elbowR: [-36, 0, 0], chest: [-4, 16, 0], head: [6, 26, 6] }, { rotY: 26 })],
+  },
+  {
+    id: 'floor-recline', name: 'Floor Recline', category: 'sitting', level: 'Medium',
+    blurb: 'Reclining on one elbow with a knee raised. Golden-hour glamour. Try it shot from above.',
+    cues: ['Lie on your side, propped on one elbow', 'Bend the top knee up', 'Free hand in your hair, gaze up at the lens'],
+    view: { azimuth: 0, elevation: 30 },
+    figures: [fig('b', { pelvis: [0, 0, 70], spine: [0, 0, -14], chest: [0, 0, -24], head: [6, 0, -24], shoulderR: [-60, 0, 30], elbowR: [-110, 0, 0], shoulderL: [-14, 0, 140], elbowL: [0, 0, 128], hipL: [-50, 0, 0], kneeL: [90, 0, 0], hipR: [-10, 0, 0], kneeR: [20, 0, 0], ankleL: [20, 0, 0], ankleR: [26, 0, 0] })],
+  },
+  {
+    id: 'bench-side', name: 'Bench Side-Sit', category: 'sitting', level: 'Easy',
+    blurb: 'Sideways on a bench with one knee up and your arm draped over it, looking back.',
+    cues: ['Sit sideways along the bench', 'Pull one knee up, drape your arm over it', 'Look back over your shoulder'],
+    props: BENCH,
+    figures: [fig('b', { hipR: [-116, 0, -6], kneeR: [128, 0, 0], hipL: [-80, 0, 18], kneeL: [80, 0, 0], shoulderR: [-60, 0, 8], elbowR: [-30, 0, 0], shoulderL: [24, 0, 20], chest: [0, -24, 0], neck: [0, -18, 0], head: [6, -30, 6] }, { rotY: 70 })],
+  },
+
+  /* ------------------------------ CUTE COUPLES & FRIENDS ------------------------------ */
+  {
+    id: 'nose-boop', name: 'Nose Boop', category: 'couples', level: 'Easy',
+    blurb: 'A playful boop on the nose. Guaranteed real giggles.',
+    cues: ['Face each other, close together', 'A: gently boop B’s nose', 'B: scrunch your face and laugh'],
+    view: { azimuth: 0 },
+    figures: [
+      fig('a', { shoulderL: [-84, 0, -8], elbowL: [-10, 0, 0], head: [14, 0, 0], chest: [4, 0, 0] }, { pos: [-0.24, 0], rotY: 90 }),
+      fig('b', { head: [-10, 0, 10], shoulderL: [-30, 0, -10], elbowL: [-120, 0, 0], shoulderR: [-30, 0, 10], elbowR: [-120, 0, 0], ...heelPopL }, { pos: [0.2, 0], rotY: -90 }),
+    ],
+  },
+  {
+    id: 'hold-face', name: 'Hold My Face', category: 'couples', level: 'Easy',
+    blurb: 'A cups B’s face in both hands while B closes their eyes and smiles. Tender and cinematic.',
+    cues: ['Stand close, facing each other', 'A: hold B’s face gently in both hands', 'B: eyes closed, hands on A’s wrists'],
+    view: { azimuth: 0 },
+    figures: [
+      fig('a', { shoulderL: [-62, -10, -6], elbowL: [-74, 0, 0], shoulderR: [-62, 10, 6], elbowR: [-74, 0, 0], head: [16, 0, 0], neck: [6, 0, 0] }, { pos: [-0.2, 0], rotY: 90 }),
+      fig('b', { head: [-14, 0, 0], shoulderL: [-50, 0, -10], elbowL: [-100, 0, 0], shoulderR: [-50, 0, 10], elbowR: [-100, 0, 0], hipL: [-6, 0, 0], kneeL: [12, 0, 0] }, { pos: [0.17, 0], rotY: -90 }),
+    ],
+  },
+  {
+    id: 'follow-me', name: 'Follow Me', category: 'couples', level: 'Easy',
+    blurb: 'B walks ahead pulling A by the hand and looking back. The classic travel-couple shot.',
+    cues: ['B: walk ahead and reach your hand back', 'A: hold B’s hand and follow', 'B: look back over your shoulder and smile'],
+    figures: [
+      fig('a', { shoulderR: [-70, 0, -10], elbowR: [-4, 0, 0], ...walkLegs, head: [-4, 0, 0] }, { pos: [-0.05, 0.55], rotY: 180 }),
+      fig('b', { ...mirrorJoints(walkLegs), shoulderL: [40, 0, 20], elbowL: [0, 0, 0], chest: [0, -26, 0], neck: [0, -18, 0], head: [-4, -44, 0], shoulderR: [-14, 0, -10] }, { pos: [0.05, -0.15], rotY: 180 }),
+    ],
+  },
+  {
+    id: 'cheek-to-cheek', name: 'Cheek to Cheek', category: 'couples', level: 'Easy',
+    blurb: 'Faces pressed together, both smiling at the camera. Close-up and joyful.',
+    cues: ['Stand side by side', 'Lean in until your cheeks touch', 'Both smile at the camera'],
+    figures: [
+      fig('a', { head: [4, 6, -16], chest: [0, 0, -6], shoulderL: [-20, 0, 40], elbowL: [-60, 0, 0] }, { pos: [-0.15, 0], rotY: 14 }),
+      fig('b', { head: [-4, -8, 18], chest: [0, 0, 8], ankleL: [20, 0, 0], ankleR: [20, 0, 0], ...peaceFace('R') }, { pos: [0.12, 0.05], rotY: -14 }),
+    ],
+  },
+  {
+    id: 'friends-selfie', name: 'Squad Selfie', category: 'group', level: 'Easy',
+    blurb: 'One person holds the phone high while everyone squeezes in.',
+    cues: ['Middle person holds the phone up high', 'Everyone leans in toward the centre', 'Chins down, eyes up to the phone'],
+    figures: [
+      fig('b', { head: [-12, 10, -16], chest: [0, 0, -8], ...peaceFace('L') }, { pos: [-0.38, 0.04], rotY: 14 }),
+      fig('a', { shoulderR: [-10, 0, -150], elbowR: [0, 0, 20], head: [-20, 0, 0], shoulderL: [-6, 0, 18] }, { pos: [0, 0], props: [{ type: 'phone', at: 'wristR' }] }),
+      fig('b', { head: [-12, -10, 16], chest: [0, 0, 8], ...heelPopL, shoulderR: [-20, 0, -30], elbowR: [-60, 0, 0] }, { pos: [0.38, 0.04], rotY: -14 }),
+    ],
+  },
+  {
+    id: 'friends-heart', name: 'Friendship Heart', category: 'group', level: 'Easy',
+    blurb: 'Two friends make one big heart over their heads with their arms.',
+    cues: ['Stand side by side, a little apart', 'Each raise your inner arm over your head', 'Meet in the middle to form a heart'],
+    figures: [
+      fig('b', { shoulderL: [-6, 0, 165], elbowL: [0, 0, -66], head: [0, 0, -8], ...kneePopL }, { pos: [-0.5, 0] }),
+      fig('b', { shoulderR: [-6, 0, -165], elbowR: [0, 0, 66], head: [0, 0, 8], hipR: [-8, 0, 6], kneeR: [24, 0, 0] }, { pos: [0.5, 0] }),
+    ],
+  },
+);
+
 // Display order: grouped by category
-const ORDER = ['solo', 'editorial', 'casual', 'sitting', 'artistic', 'fitness', 'couples', 'family', 'group'];
+const ORDER = ['solo', 'cute', 'candid', 'editorial', 'casual', 'places', 'sitting', 'artistic', 'fitness', 'couples', 'family', 'group'];
 POSES.sort((a, b) => ORDER.indexOf(a.category) - ORDER.indexOf(b.category));
 
 export const blankPose = () => ({

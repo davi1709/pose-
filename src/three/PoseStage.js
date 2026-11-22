@@ -13,6 +13,8 @@ export class PoseStage {
     this.propGroup = new THREE.Group();
     this.group.add(this.propGroup);
     this.propKey = '';
+    this.mirrors = [];
+    this.clipPlanes = [new THREE.Plane(), new THREE.Plane(), new THREE.Plane(), new THREE.Plane()];
     this.ghostPropMat = new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.35, depthWrite: false });
     this.figures = [];
     this.mode = 'ghost';
@@ -53,7 +55,7 @@ export class PoseStage {
     const specs = pose?.figures || [];
     const sameRig =
       this.figures.length === specs.length &&
-      specs.every((s, i) => this.figures[i].bodyKey === (s.body || 'a') && sameProps(this.figures[i].propSpec, s.props));
+      specs.every((s, i) => this.figures[i].bodyKey === (s.body || 'a') && this.figures[i].ghostly === !!s.ghostly && sameProps(this.figures[i].propSpec, s.props));
 
     if (!sameRig) {
       this.figures.forEach((f) => {
@@ -61,7 +63,7 @@ export class PoseStage {
         f.dispose();
       });
       this.figures = specs.map((s, i) => {
-        const m = new Mannequin({ body: s.body || 'a', color: s.color || (i >= 2 && s.body !== 'c' ? FIGURE_COLORS[i % FIGURE_COLORS.length] : undefined) });
+        const m = new Mannequin({ body: s.body || 'a', ghostly: !!s.ghostly, color: s.color || (i >= 2 && s.body !== 'c' && !s.ghostly ? FIGURE_COLORS[i % FIGURE_COLORS.length] : undefined) });
         m.propSpec = s.props;
         (s.props || []).forEach((p) => m.addProp(p.type, p.at));
         this.group.add(m.root);
@@ -81,8 +83,11 @@ export class PoseStage {
         this.propGroup.add(g);
       }
     }
+    this.mirrors = [];
+    this.propGroup.traverse((o) => o.userData.glass && this.mirrors.push(o));
     specs.forEach((s, i) => {
       const f = this.figures[i];
+      if (f.ghostly) f.setClipping(this.mirrors.length ? this.clipPlanes : null);
       f.setPose(s, instant);
       f.root.position.set(s.pos?.[0] || 0, (s.lift || 0), s.pos?.[1] || 0);
       f.root.rotation.y = (s.rotY || 0) * D2R;
@@ -99,6 +104,24 @@ export class PoseStage {
     this.figures.forEach((f) => f.setMode(mode, this.modeColor));
     this.ghostPropMat.color.set(this.modeColor);
     this.propGroup.traverse((o) => o.isMesh && (o.material = mode === 'ghost' ? o.userData.baseMat : this.ghostPropMat));
+  }
+
+  /** Call before rendering: aims the reflection clip planes from the camera through the mirror's edges. */
+  prepare(camera) {
+    const m = this.mirrors[0];
+    if (!m) return;
+    m.updateMatrixWorld(true);
+    const { w, h } = m.userData.glass;
+    const C = camera.getWorldPosition(new THREE.Vector3());
+    const corners = [[-w / 2, -h / 2], [w / 2, -h / 2], [w / 2, h / 2], [-w / 2, h / 2]].map(([x, y]) => new THREE.Vector3(x, y, 0).applyMatrix4(m.matrixWorld));
+    const center = new THREE.Vector3(0, 0, 0).applyMatrix4(m.matrixWorld);
+    // a point just behind the glass, where the reflection lives
+    const behind = center.clone().add(center.clone().sub(C).normalize().multiplyScalar(0.5));
+    for (let i = 0; i < 4; i++) {
+      const pl = this.clipPlanes[i];
+      pl.setFromCoplanarPoints(C, corners[i], corners[(i + 1) % 4]);
+      if (pl.distanceToPoint(behind) < 0) pl.negate();
+    }
   }
 
   update(dt) {
@@ -174,6 +197,7 @@ export function renderThumbnail(pose, { w = 360, h = 460 } = {}) {
     renderer.shadowMap.type = THREE.VSMShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.localClippingEnabled = true;
     const stage = new PoseStage();
     stage.attachEnvironment(renderer);
     const camera = new THREE.PerspectiveCamera(28, w / h, 0.1, 50);
@@ -184,8 +208,9 @@ export function renderThumbnail(pose, { w = 360, h = 460 } = {}) {
   camera.aspect = w / h;
   stage.setPose(pose, { instant: true });
   stage.setMode('ghost');
-  stage.frame(camera, { fill: 0.84, azimuth: pose.view?.azimuth ?? 14, elevation: 6 });
+  stage.frame(camera, { fill: 0.84, azimuth: pose.view?.azimuth ?? 14, elevation: pose.view?.elevation ?? 6 });
   renderer.setClearColor(0x000000, 0);
+  stage.prepare(camera);
   renderer.render(stage.scene, camera);
   const url = renderer.domElement.toDataURL('image/png');
   thumbCache.set(key, url);

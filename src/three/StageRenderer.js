@@ -17,6 +17,7 @@ export class StageRenderer {
     this.renderer.shadowMap.enabled = ground;
     this.renderer.shadowMap.type = THREE.VSMShadowMap;
     this.renderer.setClearColor(0x000000, 0);
+    this.renderer.localClippingEnabled = true; // mirror reflections
 
     this.stage = new PoseStage({ shadows: ground });
     this.stage.showGround = ground;
@@ -122,6 +123,7 @@ export class StageRenderer {
     if (this.controls && this.controls.update()) dirty = true;
     if (this.controls?.autoRotate) dirty = true;
     if (dirty) {
+      this.stage.prepare(this.camera);
       this.renderer.render(this.stage.scene, this.camera);
       this.needsRender = false;
       this.onRender?.();
@@ -130,6 +132,7 @@ export class StageRenderer {
 
   /** Render immediately (used before reading pixels for capture). */
   renderNow() {
+    this.stage.prepare(this.camera);
     this.renderer.render(this.stage.scene, this.camera);
   }
 

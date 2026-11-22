@@ -26,6 +26,8 @@ export default function CameraView({ pose, poses, onClose, onEdit, onPoseChange,
   const [style, setStyle] = useState('ghost');
   const [opacity, setOpacity] = useState(0.55);
   const [turn, setTurn] = useState(0);
+  const [tilt, setTilt] = useState(pose.view?.elevation ?? 4); // camera height: <0 low angle, >0 from above
+  const [rot3d, setRot3d] = useState(false); // one-finger drag rotates the ghost in 3D
   const [t, setT] = useState(DEFAULT_T);
   const [mirrorGuide, setMirrorGuide] = useState(false);
   const [showGuide, setShowGuide] = useState(true);
@@ -48,7 +50,15 @@ export default function CameraView({ pose, poses, onClose, onEdit, onPoseChange,
 
   // Mirror the guide by default for the selfie camera so "left" cues match what you see.
   useEffect(() => setMirrorGuide(selfie), [selfie]);
-  useEffect(() => setCue(0), [pose.id]);
+  useEffect(() => {
+    setCue(0);
+    setTilt(pose.view?.elevation ?? 4);
+  }, [pose.id, pose.view?.elevation]);
+
+  // View the ghost from higher or lower, like moving the photographer's camera up or down
+  useEffect(() => {
+    guideRef.current?.reframe({ azimuth: pose.view?.azimuth ?? 0, elevation: tilt });
+  }, [tilt, pose]);
 
   // Rotate the whole figure group to match the subject's angle.
   useEffect(() => {
@@ -73,7 +83,7 @@ export default function CameraView({ pose, poses, onClose, onEdit, onPoseChange,
     const arr = [...pts.current.values()];
     const mid = arr.reduce((a, p) => ({ x: a.x + p.x / arr.length, y: a.y + p.y / arr.length }), { x: 0, y: 0 });
     const dist = arr.length > 1 ? Math.hypot(arr[0].x - arr[1].x, arr[0].y - arr[1].y) : 0;
-    g0.current = { mid, dist, t };
+    g0.current = { mid, dist, t, turn, tilt };
   };
   const onDown = (e) => {
     if (count !== null) return;
@@ -94,6 +104,11 @@ export default function CameraView({ pose, poses, onClose, onEdit, onPoseChange,
     const arr = [...pts.current.values()];
     const mid = arr.reduce((a, p) => ({ x: a.x + p.x / arr.length, y: a.y + p.y / arr.length }), { x: 0, y: 0 });
     const s0 = g0.current;
+    if (rot3d && arr.length === 1) {
+      setTurn(Math.round(clamp(s0.turn + (mid.x - s0.mid.x) * 0.45, -180, 180)));
+      setTilt(Math.round(clamp(s0.tilt + (mid.y - s0.mid.y) * 0.3, -35, 80)));
+      return;
+    }
     let s = s0.t.s;
     if (arr.length > 1 && s0.dist > 0) s = clamp(s0.t.s * (Math.hypot(arr[0].x - arr[1].x, arr[0].y - arr[1].y) / s0.dist), 0.35, 2.6);
     setT({ x: s0.t.x + (mid.x - s0.mid.x), y: s0.t.y + (mid.y - s0.mid.y), s });
@@ -323,12 +338,13 @@ export default function CameraView({ pose, poses, onClose, onEdit, onPoseChange,
 
       {/* Right rail */}
       {hasFeed && (
-        <div className="absolute right-3 top-1/2 flex -translate-y-1/2 flex-col gap-2">
+        <div className={cx('absolute right-3 flex -translate-y-1/2 flex-col gap-2 transition-all duration-300', panel ? 'top-[30%] z-10' : 'top-1/2')}>
+          <RailBtn label="Rotate guide in 3D" active={rot3d} onClick={() => { setRot3d((v) => !v); haptic(8); say(rot3d ? 'Drag to move the guide' : 'Drag to turn & tilt the guide'); }}><Icon name="cube" size={18} /></RailBtn>
           <RailBtn label="Adjust guide" active={panel} onClick={() => setPanel((p) => !p)}><Icon name="sliders" size={18} /></RailBtn>
           <RailBtn label="Mirror guide" active={mirrorGuide} onClick={() => { setMirrorGuide((m) => !m); haptic(6); }}><Icon name="mirror" size={18} /></RailBtn>
           <RailBtn label={showGuide ? 'Hide guide' : 'Show guide'} active={!showGuide} onClick={() => setShowGuide((s) => !s)}><Icon name="eye" size={18} /></RailBtn>
           <RailBtn label="Copy pose from camera" onClick={copyPose}><Icon name="wand" size={18} /></RailBtn>
-          <RailBtn label="Reset" onClick={() => { setT(DEFAULT_T); setTurn(0); setOpacity(0.55); haptic(8); say('Guide reset'); }}><Icon name="rotate" size={18} /></RailBtn>
+          <RailBtn label="Reset" onClick={() => { setT(DEFAULT_T); setTurn(0); setTilt(pose.view?.elevation ?? 4); setOpacity(0.55); haptic(8); say('Guide reset'); }}><Icon name="rotate" size={18} /></RailBtn>
         </div>
       )}
 
@@ -350,12 +366,20 @@ export default function CameraView({ pose, poses, onClose, onEdit, onPoseChange,
       <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onFile} />
 
       {/* Bottom controls */}
-      <div className="safe-bottom absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/40 to-transparent pt-10">
+      <div className="safe-bottom pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/40 to-transparent pt-10 [&>*]:pointer-events-auto">
         {panel && hasFeed && (
           <div className="glass-dark mx-3 mb-3 space-y-1 rounded-3xl px-4 py-3 animate-fade-up sm:mx-auto sm:max-w-md">
             <Slider label="Visibility" value={opacity} min={0.15} max={0.95} step={0.01} fmt={(v) => Math.round(v * 100) + '%'} onChange={setOpacity} />
             <Slider label="Size" value={t.s} min={0.35} max={2.6} step={0.01} fmt={(v) => v.toFixed(2) + '×'} onChange={(s) => setT((p) => ({ ...p, s }))} />
             <Slider label="Turn" value={turn} min={-180} max={180} step={1} fmt={(v) => v + '°'} onChange={setTurn} />
+            <Slider label="Cam height" value={tilt} min={-35} max={80} step={1} fmt={(v) => (v > 0 ? '↓' : v < 0 ? '↑' : '') + Math.abs(v) + '°'} onChange={setTilt} />
+            <div className="flex gap-1.5">
+              {[['Low', -20], ['Eye', 4], ['High', 30], ['Top', 62]].map(([l, v]) => (
+                <button key={l} onClick={() => { setTilt(v); haptic(6); }} className={cx('press flex-1 rounded-xl py-1.5 text-[11.5px] font-medium', Math.abs(tilt - v) < 3 ? 'bg-lilac-500 text-white' : 'bg-white/[0.07] text-white/65')}>
+                  {l === 'Low' ? 'Low angle' : l === 'Eye' ? 'Eye level' : l === 'High' ? 'From above' : 'Overhead'}
+                </button>
+              ))}
+            </div>
             <div className="flex gap-1.5 pt-1">
               {STYLES.map((s) => (
                 <button key={s.id} onClick={() => setStyle(s.id)} className={cx('press flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2 text-[12px] font-medium', style === s.id ? 'bg-white text-ink-950' : 'bg-white/[0.07] text-white/70')}>
@@ -363,7 +387,7 @@ export default function CameraView({ pose, poses, onClose, onEdit, onPoseChange,
                 </button>
               ))}
             </div>
-            <p className="pt-1 text-center text-[11px] text-white/40">Drag the guide to move it, pinch to resize, double-tap to re-centre</p>
+            <p className="pt-1 text-center text-[11px] text-white/40">Drag to move · pinch to resize · double-tap to re-centre · 3D button to turn & tilt by dragging</p>
           </div>
         )}
 

@@ -59,7 +59,7 @@ function hullMaterial(color) {
 }
 
 export class Mannequin {
-  constructor({ body = 'a', color } = {}) {
+  constructor({ body = 'a', color, ghostly = false } = {}) {
     this.bodyKey = BODIES[body] ? body : 'a';
     const B = BODIES[this.bodyKey];
     this.root = new THREE.Group();
@@ -68,9 +68,14 @@ export class Mannequin {
     this.props = [];
     this.mode = 'ghost';
     this.highlighted = null;
+    this.ghostly = ghostly; // e.g. a mirror reflection: drawn translucent
 
     this.material = bodyMaterial(color || B.color);
     this.flatMaterial = new THREE.MeshBasicMaterial({ color: '#ffffff' });
+    if (ghostly) {
+      Object.assign(this.material, { transparent: true, opacity: 0.42 });
+      Object.assign(this.flatMaterial, { transparent: true, opacity: 0.38 });
+    }
     this.hullMaterial = hullMaterial('#ffffff');
 
     const geometry = getBodyGeometry(this.bodyKey);
@@ -158,9 +163,17 @@ export class Mannequin {
     this.flatMaterial.colorWrite = mode !== 'outline';
     this.mesh.material = mode === 'ghost' ? this.material : this.flatMaterial;
     this.hull.visible = mode === 'outline';
-    this.mesh.castShadow = mode === 'ghost';
+    this.mesh.castShadow = mode === 'ghost' && !this.ghostly;
+    this.hull.visible = mode === 'outline' && !this.ghostly;
     for (const p of this.props)
       p.traverse((o) => o.isMesh && (o.material = mode === 'ghost' ? o.userData.baseMat : this.flatMaterial));
+  }
+
+  /** Clip a reflection so it only shows inside the mirror glass (planes updated per frame by the stage). */
+  setClipping(planes) {
+    this.material.clippingPlanes = planes;
+    this.flatMaterial.clippingPlanes = planes;
+    this.material.needsUpdate = this.flatMaterial.needsUpdate = true;
   }
 
   setHighlight(joint) {
@@ -230,6 +243,32 @@ export function makeProp(type) {
       for (const x of [-0.035, 0.035]) add(new THREE.CylinderGeometry(0.026, 0.026, 0.006, 24), pmat('#1d1a24', 0.15), [x, 0, 0], [90, 0, 0]);
       add(new THREE.BoxGeometry(0.03, 0.005, 0.005), pmat('#1d1a24', 0.2), [0, 0.01, 0]);
       break;
+    case 'wall':
+      add(rbox(1.7, 2.3, 0.12, 0.02), pmat('#e9e3da', 0.85), [0, 1.15, 0]);
+      add(rbox(1.7, 0.1, 0.16, 0.02), pmat('#d8d0c4', 0.8), [0, 0.05, 0.02]);
+      break;
+    case 'tree': {
+      add(new THREE.CylinderGeometry(0.14, 0.2, 2.5, 24), pmat('#8c6a50', 0.9), [0, 1.25, 0]);
+      add(new THREE.CylinderGeometry(0.06, 0.1, 0.9, 12), pmat('#8c6a50', 0.9), [0.22, 2.25, 0], [0, 0, -38]);
+      const leaf = pmat('#9fcb98', 0.75);
+      [[0, 2.9, 0, 0.62], [0.45, 2.7, 0.1, 0.48], [-0.42, 2.75, -0.05, 0.5], [0.1, 3.25, -0.1, 0.45], [0, 2.75, 0.35, 0.42]].forEach(([x, y, z, r]) =>
+        add(new THREE.SphereGeometry(r, 24, 18), leaf, [x, y, z]));
+      break;
+    }
+    case 'mirror': {
+      // hollow frame so the reflection behind the glass shows through
+      const gold = pmat('#d8c39b', 0.3);
+      add(rbox(0.74, 0.05, 0.05, 0.02), gold, [0, 1.825, 0]);
+      add(rbox(0.74, 0.05, 0.05, 0.02), gold, [0, 0.075, 0]);
+      add(rbox(0.05, 1.8, 0.05, 0.02), gold, [-0.345, 0.95, 0]);
+      add(rbox(0.05, 1.8, 0.05, 0.02), gold, [0.345, 0.95, 0]);
+      add(rbox(0.5, 0.04, 0.3, 0.01), gold, [0, 0.02, -0.08]);
+      const glass = new THREE.MeshPhysicalMaterial({ color: '#e6edf7', metalness: 0.6, roughness: 0.04, transparent: true, opacity: 0.16, depthWrite: false });
+      add(new THREE.PlaneGeometry(0.64, 1.7), glass, [0, 0.95, 0]);
+      g.children[g.children.length - 1].userData.glass = { w: 0.64, h: 1.7 };
+      g.children[g.children.length - 1].castShadow = false;
+      break;
+    }
     case 'book':
       add(rbox(0.16, 0.22, 0.026, 0.006), pmat('#d9b98f', 0.55), [-0.06, -0.1, 0.07], [-20, 0, 80]);
       add(rbox(0.15, 0.21, 0.03, 0.004), pmat('#fbf7ef', 0.7), [-0.06, -0.1, 0.085], [-20, 0, 80]);
