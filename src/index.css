@@ -1,0 +1,101 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: ui-sans-serif, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Segoe UI", Roboto, sans-serif;
+  --font-display: "Iowan Old Style", "New York", ui-serif, "Palatino Linotype", Georgia, serif;
+
+  --color-ink-950: #09080d;
+  --color-ink-900: #100e16;
+  --color-ink-850: #15121d;
+  --color-ink-800: #1b1825;
+  --color-ink-700: #262233;
+  --color-ink-600: #36304a;
+
+  --color-lilac-200: #e2d9ff;
+  --color-lilac-300: #c9b8ff;
+  --color-lilac-400: #ab94fb;
+  --color-lilac-500: #8b6cf6;
+  --color-lilac-600: #7451ea;
+  --color-peach-300: #ffc9b5;
+
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+
+  --animate-fade-up: fade-up 0.5s var(--ease-out-expo) both;
+  --animate-fade-in: fade-in 0.35s ease both;
+  --animate-sheet: sheet-up 0.5s var(--ease-out-expo) both;
+  --animate-pop: pop 0.45s var(--ease-spring) both;
+  --animate-count: count 1s ease-out both;
+  --animate-flash: flash 0.5s ease-out both;
+  --animate-shimmer: shimmer 1.6s linear infinite;
+  --animate-float: float 4s ease-in-out infinite;
+
+  @keyframes fade-up { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+  @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes sheet-up { from { transform: translateY(100%); } to { transform: none; } }
+  @keyframes pop { 0% { transform: scale(0.6); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+  @keyframes count { 0% { transform: scale(1.6); opacity: 0; } 18% { transform: scale(1); opacity: 1; } 85% { opacity: 1; } 100% { transform: scale(0.85); opacity: 0; } }
+  @keyframes flash { from { opacity: 0.95; } to { opacity: 0; } }
+  @keyframes shimmer { from { background-position: -200% 0; } to { background-position: 200% 0; } }
+  @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+}
+
+@keyframes scan { from { top: -25%; } to { top: 100%; } }
+
+@utility glass {
+  background: rgb(255 255 255 / 0.065);
+  -webkit-backdrop-filter: blur(22px) saturate(170%);
+  backdrop-filter: blur(22px) saturate(170%);
+  border: 1px solid rgb(255 255 255 / 0.09);
+}
+@utility glass-dark {
+  background: rgb(12 10 18 / 0.48);
+  -webkit-backdrop-filter: blur(22px) saturate(160%);
+  backdrop-filter: blur(22px) saturate(160%);
+  border: 1px solid rgb(255 255 255 / 0.1);
+}
+@utility press {
+  transition: transform 0.18s var(--ease-spring), background-color 0.2s, opacity 0.2s;
+  -webkit-tap-highlight-color: transparent;
+  &:active { transform: scale(0.93); }
+}
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar { display: none; }
+}
+@utility safe-top { padding-top: max(env(safe-area-inset-top), 12px); }
+@utility safe-bottom { padding-bottom: max(env(safe-area-inset-bottom), 12px); }
+@utility skeleton {
+  background: linear-gradient(90deg, rgb(255 255 255 / 0.03) 25%, rgb(255 255 255 / 0.08) 50%, rgb(255 255 255 / 0.03) 75%);
+  background-size: 200% 100%;
+  animation: var(--animate-shimmer);
+}
+
+@layer base {
+  html, body, #root { height: 100%; }
+  body {
+    @apply bg-ink-950 text-white font-sans antialiased;
+    overscroll-behavior: none;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  input, textarea { -webkit-user-select: text; user-select: text; }
+  button { cursor: pointer; }
+
+  /* Range slider: thin track, glossy thumb */
+  input[type='range'] {
+    -webkit-appearance: none; appearance: none; background: transparent; width: 100%; height: 28px;
+  }
+  input[type='range']::-webkit-slider-runnable-track {
+    height: 4px; border-radius: 99px;
+    background: linear-gradient(to right, var(--color-lilac-400) var(--fill, 50%), rgb(255 255 255 / 0.14) var(--fill, 50%));
+  }
+  input[type='range']::-moz-range-track { height: 4px; border-radius: 99px; background: rgb(255 255 255 / 0.14); }
+  input[type='range']::-moz-range-progress { height: 4px; border-radius: 99px; background: var(--color-lilac-400); }
+  input[type='range']::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 22px; height: 22px; margin-top: -9px; border-radius: 99px; background: #fff;
+    box-shadow: 0 2px 10px rgb(0 0 0 / 0.4), 0 0 0 4px rgb(171 148 251 / 0.25);
+  }
+  input[type='range']::-moz-range-thumb { width: 22px; height: 22px; border: 0; border-radius: 99px; background: #fff; }
+}

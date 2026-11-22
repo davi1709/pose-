@@ -1,0 +1,13 @@
+<!doctype html><html><body>
+<img id="im" src="/qa-person.jpg">
+<script src="/mediapipe-pose/pose.js"></script>
+<script type="module">
+try {
+  const pose = new window.Pose({ locateFile: (f) => '/mediapipe-pose/' + f });
+  pose.setOptions({ modelComplexity: 1, staticImageMode: true, enableSegmentation: false, minDetectionConfidence: 0.4 });
+  const res = await new Promise(async (ok) => { pose.onResults(ok); await pose.initialize(); await pose.send({ image: document.getElementById('im') }); });
+  const w = res.poseWorldLandmarks;
+  window.result = w ? { n: w.length, sh: w.slice(11, 17).map(p => [p.x, p.y, p.z, p.visibility].map(v => +v.toFixed(2))) } : 'no person';
+} catch (e) { window.result = 'ERR ' + e.message; }
+window.done = true;
+</script></body></html>
